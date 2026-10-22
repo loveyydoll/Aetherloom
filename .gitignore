@@ -1,0 +1,10 @@
+/build*/
+/.vs/
+/.idea/
+/.vscode/
+.DS_Store
+*.user
+*.suo
+*.component
+*.vst3
+*.app
