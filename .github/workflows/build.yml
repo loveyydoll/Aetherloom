@@ -26,8 +26,13 @@ jobs:
       - name: Install and validate native AU
         if: runner.os == 'macOS'
         run: bash scripts/install-au.sh
+      - name: Package component with bundle structure and executable permissions
+        if: runner.os == 'macOS'
+        run: |
+          ditto -c -k --keepParent build/Aetherloom_artefacts/Release/AU/Aetherloom.component build/Aetherloom-0.2.0-arm64.zip
+          zip -j build/Aetherloom-0.2.0-arm64.zip scripts/install-au.sh
       - uses: actions/upload-artifact@v4
         if: runner.os == 'macOS'
         with:
           name: Aetherloom-0.2.0-Apple-Silicon-development
-          path: build/Aetherloom_artefacts/Release/AU/Aetherloom.component
+          path: build/Aetherloom-0.2.0-arm64.zip

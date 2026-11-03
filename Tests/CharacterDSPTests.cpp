@@ -10,6 +10,7 @@ int main() {
         require(std::abs(table(phase)-std::sin(phase*6.283185307179586)) < 0.000001);
         require(std::isfinite(aetherloom::saturate(table(phase)*10)));
     }
+    require(std::abs(table(-1e-30)) < 0.000001f);
     const auto glow = aetherloom::morph(0,0), glass = aetherloom::morph(1,0);
     const auto haze = aetherloom::morph(0,1), fracture = aetherloom::morph(1,1);
     const auto middle = aetherloom::morph(0.5f,0.5f);

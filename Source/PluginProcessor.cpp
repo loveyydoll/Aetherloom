@@ -115,6 +115,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AetherloomProcessor::layout(
 AetherloomProcessor::AetherloomProcessor()
     : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)),
       parameters(*this, nullptr, "AetherloomState", layout()) {
+    gainParameter = parameters.getRawParameterValue("gain");
     initialState = parameters.copyState();
     for (int i = 0; i < 16; ++i) synth.addVoice(new Voice(parameters, sine));
     synth.addSound(new Sound()); synth.setNoteStealingEnabled(true);
@@ -133,7 +134,7 @@ void AetherloomProcessor::setCurrentProgram(int index) {
 }
 void AetherloomProcessor::prepareToPlay(double rate, int) {
     synth.allNotesOff(0, false); synth.setCurrentPlaybackSampleRate(rate); keyboard.reset();
-    outputGain.reset(rate, 0.02); outputGain.setCurrentAndTargetValue(parameters.getRawParameterValue("gain")->load());
+    outputGain.reset(rate, 0.02); outputGain.setCurrentAndTargetValue(gainParameter->load(std::memory_order_relaxed));
 }
 void AetherloomProcessor::releaseResources() { synth.allNotesOff(0, false); keyboard.reset(); }
 bool AetherloomProcessor::isBusesLayoutSupported(const BusesLayout& buses) const {
@@ -144,7 +145,7 @@ void AetherloomProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::M
     juce::ScopedNoDenormals noDenormals;
     buffer.clear(); keyboard.processNextMidiBuffer(midi, 0, buffer.getNumSamples(), true);
     synth.renderNextBlock(buffer, midi, 0, buffer.getNumSamples());
-    outputGain.setTargetValue(parameters.getRawParameterValue("gain")->load());
+    outputGain.setTargetValue(gainParameter->load(std::memory_order_relaxed));
     outputGain.applyGain(buffer, buffer.getNumSamples()); midi.clear();
 }
 void AetherloomProcessor::getStateInformation(juce::MemoryBlock& dest) {

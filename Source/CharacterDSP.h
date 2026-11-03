@@ -15,7 +15,8 @@ public:
     float operator()(double phase) const noexcept {
         phase -= std::floor(phase);
         const auto position = phase * size;
-        const auto index = static_cast<size_t>(position);
+        // Tiny negative phases can round to exactly one after wrapping.
+        const auto index = std::min(size - 1, static_cast<size_t>(position));
         const auto fraction = static_cast<float>(position - static_cast<double>(index));
         return data[index] + fraction * (data[index + 1] - data[index]);
     }

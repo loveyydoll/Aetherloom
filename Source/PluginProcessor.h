@@ -32,6 +32,7 @@ private:
     aetherloom::SineTable sine;
     juce::Synthesiser synth;
     juce::SmoothedValue<float> outputGain;
+    std::atomic<float>* gainParameter = nullptr;
     std::atomic<int> currentProgram{0};
     juce::ValueTree initialState;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AetherloomProcessor)

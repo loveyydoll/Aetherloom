@@ -1,7 +1,10 @@
 #!/bin/bash
 # Install a local development build for Logic Pro / GarageBand (no sudo).
 set -euo pipefail
-component="${1:-build/Aetherloom_artefacts/Release/AU/Aetherloom.component}"
+component="${1:-Aetherloom.component}"
+if [[ $# -eq 0 && ! -d "$component" ]]; then
+    component="build/Aetherloom_artefacts/Release/AU/Aetherloom.component"
+fi
 if [[ "$(uname -s)" != Darwin || "$(uname -m)" != arm64 ]]; then
     echo 'Run this from a native Terminal on an Apple Silicon Mac.' >&2
     exit 1

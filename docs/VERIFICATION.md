@@ -14,6 +14,8 @@ Processor tests cover silent initialization, MIDI event offsets, multi-note cont
 ## 0.2.0 — 2026-11-03
 
 - Local Linux: independent CharacterDSPTests compiled with g++ 13, C++20, -O2 -Wall -Wextra -Werror and passed sine-table error bounds, phase wrapping, morph weight/corner and saturation checks.
+- AddressSanitizer + UndefinedBehaviorSanitizer DSP run passed (leak detection disabled because this environment uses ptrace).
+- JUCE 8.0.12 header-level syntax checks passed for processor, editor, processor tests and benchmark using g++ 13; this does not constitute a linked plugin build.
 - `bash -n scripts/install-au.sh` and `git diff --check` passed.
 - Expanded JUCE processor suite covers all factory patches, new control/state recall, legacy-state defaults, audible FM/morph/motion response and finite bounded output across 44.1/48/96 kHz, 1/17/64/512/1024 samples and voice stealing.
 - Full JUCE/macOS/Windows build, processor tests, AU architecture/signing/auval and benchmark are configured in CI; results must be read from the PR run, not inferred from test source.

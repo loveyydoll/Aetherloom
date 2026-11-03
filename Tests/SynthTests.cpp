@@ -57,6 +57,10 @@ int main()
         require(std::abs(restored.parameters.getRawParameterValue("colour")->load() - 0.83f) < 0.001f, "State must round-trip");
         const char invalid[] = "broken"; restored.setStateInformation(invalid, sizeof(invalid));
         require(std::abs(restored.parameters.getRawParameterValue("colour")->load() - 0.83f) < 0.001f, "Invalid state must be ignored");
+        for (auto id : {"mode","colour","gain","cutoff","attack","decay","sustain","release"})
+            require(p.parameters.getParameter(id)->getVersionHint() == 1, "Old AU hints must stay stable");
+        for (auto id : {"mix","sub","fm","motion","rate","morphX","morphY","morph"})
+            require(p.parameters.getParameter(id)->getVersionHint() == 2, "New AU parameters must append");
         // Every factory patch must be audible, distinct and recallable.
         float previous = 0;
         for (int patch = 0; patch < p.getNumPrograms(); ++patch) {
