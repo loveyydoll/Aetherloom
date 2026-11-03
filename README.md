@@ -1,23 +1,35 @@
 # Aetherloom
 
-An original character synthesizer by loveyydoll. **0.2.0 alpha**, C++20 / JUCE 8.
-Built for making music in **Logic Pro and GarageBand on Apple Silicon**. Primary target: MacBook Air M5, 16 GB unified memory, 1 TB SSD.
+A character synthesizer for **Logic Pro and GarageBand on Apple Silicon**. C++20 / JUCE 8 / AUv2, **0.3.0 alpha**. Primary hardware target: MacBook Air M5, 16 GB unified memory, 1 TB SSD.
 
-## Play first, edit when you want
+## Make a sound, then go deeper
 
-- Six original factory patches: **Init, Velvet Steps, Glass Rooms, Slow Orbit, Paper Circuit, Low Lantern**. Load one, play the piano or MIDI controller, then shape it.
-- **PLAY:** WARM / BLEND / GLITCH, Colour, Level, Scene amount and a four-corner pad: **Glow / Glass / Haze / Fracture**. Raise Scene amount to hear the pad. At zero, EDIT's timbre controls determine the sound.
-- **EDIT:** character oscillator + second harmonic + octave-down sine, Body/Harmonic balance, Sub weight, Glass (FM), brightness, per-voice motion depth/speed and ADSR described as Fade in / Fall / Hold / Fade out. Tooltips explain each control; the scene pad also has X/Y sliders.
-- Scene blending interpolates colour, oscillator balance, sub, FM and motion depth. Envelope, brightness, rate, mode and level stay independent. This is a small timbre interpolation engine, **not** Alchemy sample/spectral morphing.
-- 16 voices, voice stealing, velocity, sustain, +/-2-semitone pitch wheel, mono/stereo output, automatable controls and session recall. Factory sounds are original; no Apple presets, samples or code are included.
+Start with one of **18 original factory sounds**, use the four-corner scene pad and performance macros, then open EDIT when you want the machinery. Search/filter the sound browser, mutate a timbre, save your own `.aetherpreset`, or use the host's project/preset system.
 
-Inspired by Alchemy's performance-first morphing and ES2's oscillator mixing/FM, with fewer controls at once. Granular/additive sample synthesis, sample import, a modulation matrix, vector envelopes, tempo sync and effects are future work, not implemented features.
+**PLAY** gives you Level, Brightness, Colour, Scene amount and Warmth / Air / Movement / Space. **EDIT** has six pages: Oscillators, Filters/Amp, Motion, Mod Matrix, Effects and Arp/Steps. Controls that require Hybrid dim when Classic is selected. RELOAD restores the factory sound; PANIC clears voices, arpeggiator ownership and effect tails on the audio thread.
 
-## Native Apple Silicon AU
+### Hybrid engine
 
-The macOS default is **AUv2 `Aetherloom.component` + Standalone**, arm64 only. The AU declares sandbox-safe operation (no external file/network access in the synth). `.component` is the plugin bundle extension used by Logic Pro and GarageBand; renaming a VST3 or using a Logic `.patch` file would not turn it into an AU. Existing manufacturer `Lvyd`, subtype `Aelm`, bundle ID and parameter IDs remain stable. New AU controls use version hint 2 so old automation addresses keep their ordering.
+- **Three independent oscillators**: sine, mipmapped triangle, PolyBLEP saw/pulse and a four-frame spectral wavetable. Each has its own semitone/cents tuning, level, spectral position and pulse width. Up to **three unison voices per oscillator**, with detune and stereo spread; at most 144 oscillator lanes across 16 polyphonic voices.
+- Oscillator 2 → oscillator 1 phase/FM modulation, ring modulation, noise and a sine sub. High-note FM depth is reduced; this is not a guarantee of alias-free FM.
+- **Two resonant TPT state-variable filters per stereo voice**: low-pass, band-pass, high-pass or notch; serial/parallel routing and a blend between filter outputs. Drive, keyboard tracking and a separate bipolar-depth filter envelope.
+- **Three ADSRs**: amplitude, filter and freely routable modulation. Two note-retriggered LFOs offer sine, triangle, ramp, square and sample & hold; choose Hz or tempo divisions.
+- **Eight modulation routes**, each with source, destination and bipolar depth. Sources include LFOs, envelopes, velocity, key, mod wheel, channel/poly pressure, per-note random and the arpeggiator's step transpose. Destinations include global/per-oscillator pitch, both cutoffs, resonance, spectral scan, FM, pan, level and scene X/Y.
+- The scene pad blends original Glow / Glass / Haze / Fracture timbres: character drive, oscillator balance, sub, FM and brightness motion. Envelope, cutoff and level stay separate. This is parameter interpolation, not Alchemy's sample/spectral resynthesis.
 
-Install Xcode and its command-line tools, Git and CMake 3.22+. JUCE 8.0.12 is pinned at `29396c22c93392d6738e021b83196283d6e4d850` and fetched during configuration. From a native Terminal:
+### Clock, effects and patches
+
+- **Arpeggiator**: Up, Down, Up/Down and As Played; one to three octaves, six divisions, gate, swing and eight editable transpose steps. MIDI offsets and fractional step timing survive block boundaries. Sustain owns held keys; panic, engine/arp changes and transport stop/seek clear ownership. The first held note starts the pattern; this is not PPQ-quantised note input.
+- **Stereo effects**: chorus, interpolated ping-pong delay with filtered cross-feedback, and algorithmic reverb. Delay/LFO divisions follow host BPM; without a host tempo they use 120 BPM. Delay times are capped at four seconds, including very slow synced divisions. Space raises delay/reverb mix.
+- **18 patches**: six Classic sounds plus Copper Keys, Velvet Machine, Glass Elevator, Weather Archive, Orbit Choir, Magnetic Dawn, Basement Current, Rubber Voltage, Neon Thread, Fracture Bloom, Clockwork Garden and Broken Satellites.
+- MUTATE changes oscillator/filter timbre within constrained musical ranges; it keeps the envelope, effects, modulation routes and clock. SAVE/LOAD use a versioned binary state container named `.aetherpreset`; native `.aupreset`/Logic patch management remains the host's responsibility.
+- **114 host-automatable parameters**. Factory names indicate the last loaded sound; the edited marker and all parameter values are saved in sessions/user presets.
+
+**Classic** keeps the earlier WARM / BLEND / GLITCH character engine. Existing parameter IDs, AU identity and factory indices are retained. New controls use AU version hint 3; missing controls in older sessions receive neutral defaults, including Classic engine and arp off. Classic remains playable with the new shared effects and arpeggiator.
+
+## Build and install on the M5 Air
+
+Install Xcode and its command-line tools, Git and CMake 3.22+. JUCE 8.0.12 is pinned at `29396c22c93392d6738e021b83196283d6e4d850`.
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=ON
@@ -26,24 +38,37 @@ ctest --test-dir build -C Release --output-on-failure
 bash scripts/install-au.sh
 ```
 
-Quit the hosts before installation, then restart them. GarageBand: enable Audio Units in Settings > Audio/MIDI; on a software-instrument track open Smart Controls > Plug-ins > instrument > AU Instruments > loveyydoll > Aetherloom. Logic: instrument slot > AU Instruments > loveyydoll > Aetherloom; use Plug-in Manager to rescan if needed. The installer checks arm64, ad-hoc signs the local build, copies it into `~/Library/Audio/Plug-Ins/Components/` refreshes your user's AU registration cache and runs `auval -v aumu Aelm Lvyd`.
+macOS builds are **arm64 only**, with AUv2 `Aetherloom.component` and Standalone by default. Add `-DAETHERLOOM_BUILD_VST3=ON` for VST3; Intel/universal macOS configurations are rejected. Non-Apple Standalone/VST3 builds remain development checks. For an existing JUCE checkout, add `-DFETCHCONTENT_SOURCE_DIR_JUCE=/absolute/path/to/JUCE`.
 
-These are local development builds, not signed/notarised distribution packages. Download CI's Apple Silicon development artifact, then extract the inner `Aetherloom-0.2.0-arm64.zip`. It preserves the complete component bundle and includes `install-au.sh`. From that extracted folder run `bash install-au.sh` (no build required). Native host testing is still required.
+Quit audio hosts before installation. The script checks architecture, ad-hoc signs the local component, copies it to `~/Library/Audio/Plug-Ins/Components/`, refreshes the current user's AU registrar and runs `auval -v aumu Aelm Lvyd`. Restart the host afterwards.
 
-Optional VST3: add `-DAETHERLOOM_BUILD_VST3=ON` on macOS. Non-Apple builds retain Standalone/VST3 for development checks. Intel/universal macOS builds are intentionally rejected. Offline JUCE checkout: `-DFETCHCONTENT_SOURCE_DIR_JUCE=/absolute/path/to/JUCE`.
+- **GarageBand:** enable Audio Units in Settings > Audio/MIDI; on a software-instrument track open Smart Controls > Plug-ins > instrument > AU Instruments > loveyydoll > Aetherloom.
+- **Logic Pro:** instrument slot > AU Instruments > loveyydoll > Aetherloom; rescan in Plug-in Manager if needed.
 
-## M5 Air performance approach
+CI packages an inner `Aetherloom-0.3.0-arm64.zip`, preserving the complete component bundle and including `install-au.sh`. Extract it, then run `bash install-au.sh` in that folder. These are ad-hoc development builds, not Developer ID signed/notarised distribution packages. AUv2 `.component` remains the integration format; a Logic `.patch` file is not the plugin binary.
 
-One immutable interpolated sine table per processor (~16 KiB), cached atomic parameter pointers, no per-sample sine/tanh calls, bounded 16-voice work, control-rate filter coefficient updates, no render-time sample loading or disk I/O, denormal protection, 20 ms timbre/output smoothing and Release optimisation/LTO on macOS. Uses the arm64 baseline instead of an unverified M5-only compiler flag. The engine is small; the 1 TB SSD is for projects, not a required sample library. No GPU worker threads or large sample cache compete for unified memory.
+## Performance and validation
 
-Run `build/AetherloomBenchmark_artefacts/Release/AetherloomBenchmark` for median/p99/max render time of 16 voices at 48 kHz/128 samples. Compare against its printed block budget; it is a diagnostic, not a guarantee. Measure on the M5 Air after a long session to capture thermal behaviour. No M5 measurements have been made here.
+Fixed 16-voice polyphony and bounded unison, cached parameter pointers, immutable sine/spectral tables, 32-sample modulation/filter control updates and smoothed continuous controls. Voices use fixed arrays; delay/chorus storage is prepared before rendering. Classic/dry effects bypass avoids hidden effect processing when mixes have settled to zero. The scene pad redraws only on changes. macOS Release builds use optimisation/LTO and the native arm64 baseline, without fast-math or speculative M5-only flags.
+
+The spectral bank costs about 256 KiB per instance; the stereo delay reserves four seconds (~1.5 MiB at 48 kHz, ~3 MiB at 96 kHz). No sample library, render-time disk streaming, GPU worker or background synthesis thread is required. Host/JUCE MIDI queues and host scheduling still matter; this is not a hard realtime certification.
+
+```sh
+build/AetherloomBenchmark_artefacts/Release/AetherloomBenchmark
+```
+
+The benchmark reports median/p99/max block time for Classic, Hybrid, and a 16-note/three-unison/eight-route/full-effects stress configuration at 48/96 kHz. Compare with the printed 128-sample budget. Shared CI timing does not establish M5 Air performance or sustained thermal behaviour.
+
+The suites cover oscillator/filter invariants, all patches, session/user-preset recall, legacy defaults, modulation, effects/panic, arpeggiator ownership/timing, and audio equivalence across 64- versus 8192-sample blocks. Optional editor snapshots: set `AETHERLOOM_EDITOR_SNAPSHOTS` to an absolute output folder when running AetherloomTests.
+
+See [modulation units](docs/MODULATION.md), [architecture](docs/ARCHITECTURE.md), [sound design](docs/SOUND_DESIGN.md), [host acceptance](docs/HOST_TESTING.md) and [verification](docs/VERIFICATION.md).
 
 ## Alpha boundaries
 
-FM and quantisation can alias, especially GLITCH; this is not an oversampled engine. Smoothing reduces timbre/level discontinuities but does not guarantee click-free voice stealing, pitch wheel or live envelope changes. WARM's saturation has changed, so old sessions load their controls but may sound different. Legacy states missing new controls receive Init defaults. Patch names indicate the last loaded patch; edited sounds are saved in the host project. Motion is free-running per note, not tempo synced.
+This is a substantial synthesis engine, not full Alchemy/ES2 parity. No audio import, granular/additive sample engine, user wavetable import, vector envelope editor, MPE, oversampling, undo history or notarised installer is implemented. Spectral frames are generated internally. PolyBLEP/mipmaps reduce particular alias sources; FM, ring modulation, saturation, quantisation and waveform/band changes can still alias or click. Voice stealing and live envelope changes can click. Modulation/filter updates run every 32 samples, not at audio rate; scene interpolation is not spectral morphing.
 
-See [host checks](docs/HOST_TESTING.md), [feature mapping](docs/SOUND_DESIGN.md) and [verification](docs/VERIFICATION.md). CI and auval do not prove Logic/GarageBand playback or physical audio output.
+A soft safety ceiling acts above 0.95 output amplitude. Preset/engine/arp changes can interrupt held notes. Effect time changes glide and may alter pitch. Native builds/auval and offline tests do not prove Logic/GarageBand playback, Retina interaction or M5 thermal performance; record those separately.
 
 ## Licence
 
-AGPL-3.0-only; see [LICENSE](LICENSE) and [docs/LICENSING.md](docs/LICENSING.md). JUCE and bundled dependencies retain their licences.
+AGPL-3.0-only. See [LICENSE](LICENSE) and [docs/LICENSING.md](docs/LICENSING.md). No Apple preset assets, recordings or proprietary synth code are included; JUCE/dependency licences remain applicable.

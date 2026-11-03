@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 — 2026-11-03
+
+- Add a separate 16-voice Hybrid engine: three independently tuned five-wave oscillators, four-frame/eight-band spectral bank, PolyBLEP saw/pulse, up to three unison lanes, detune/stereo spread, FM, ring, noise and sub.
+- Add dual stereo TPT resonant filters (LP/BP/HP/notch, serial/parallel), drive, keyboard tracking, independent filter/mod ADSRs and two five-shape tempo/free LFOs.
+- Add eight bipolar modulation slots, conventional MIDI expression inheritance and explicit target units. Add four performance macros; retain scene blending and Classic compatibility.
+- Add a sample-offset arpeggiator with direction/octaves/gate/swing, eight transpose steps, sustain ownership, stop/seek/panic resets and MIDI-isolated render intervals.
+- Add stereo chorus, smoothed interpolated ping-pong delay and reverb; mono/oversized-block chorus scratch, prepared delay storage, dry bypass, output ceiling and conservative effect-aware tail reporting.
+- Add 12 Hybrid factory sounds (18 total), 98 new controls (114 total), appended AU version hint 3, full missing-control defaults and edited-state recall.
+- Replace EDIT with six scrolling pages; add search/category browser, constrained MUTATE, RELOAD, user preset SAVE/LOAD and audio-thread PANIC.
+- Add DSP/filter/parameter, arp clock/ownership, modulation/effects, preset, block-partition and mono/large-buffer tests; extend the render benchmark and optional software editor snapshots.
+- Keep native arm64 AU/Standalone builds and development packaging. No full Alchemy/ES2 parity, user sample/wavetable import, MPE, oversampling or physical M5/DAW validation is claimed.
+
 ## 0.2.0 — 2026-11-03
 
 - Target MacBook Air M5 / 16 GB / 1 TB with native arm64-only, sandbox-safe macOS AUv2 and Standalone defaults; keep VST3 opt-in on macOS.

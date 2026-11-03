@@ -20,3 +20,12 @@ Processor tests cover silent initialization, MIDI event offsets, multi-note cont
 - Expanded JUCE processor suite covers all factory patches, new control/state recall, legacy-state defaults, audible FM/morph/motion response and finite bounded output across 44.1/48/96 kHz, 1/17/64/512/1024 samples and voice stealing.
 - Full JUCE/macOS/Windows build, processor tests, AU architecture/signing/auval and benchmark are configured in CI; results must be read from the PR run, not inferred from test source.
 - M5 Air performance, Logic Pro/GarageBand loading, listening, Retina/keyboard interaction and long-session thermal behaviour remain untested on physical hardware.
+
+## 0.3.0 development — 2026-11-03
+
+- Previous 0.2 head e008dd6 passed macOS/Windows CI, including architecture/signature/auval and archive packaging: https://github.com/loveyydoll/Aetherloom/actions/runs/41664527999 . This does not validate 0.3.
+- Independent HybridDSPTests passed locally with g++ 13, C++20, -O2 -Wall -Wextra -Werror: waveform bounds, PolyBLEP saw seam, high-note spectral mip selection, resonant filter stability/DC and parameter contracts.
+- New processor, UI, arp and benchmark source passed JUCE 8.0.12 header syntax checks. Linked test/CI results must be recorded in the PR; test source alone is not a passing result.
+- Added regression coverage for Hybrid tuning/routes/filters/effects/limits, all parameter/user-preset recall, Classic defaults, arpeggiator audio block equivalence and mono/oversized chorus buffers.
+- Added standalone arpeggiator tests for offsets/cross-block timing, direction/octaves, swing, sustain ownership and panic. Optional editor snapshots exercise PLAY and all six EDIT pages.
+- Physical Logic Pro/GarageBand playback, MIDI hardware, native UI/file panels, M5 load/thermal measurements, signing/notarisation and distribution acceptance remain separate unperformed checks.
