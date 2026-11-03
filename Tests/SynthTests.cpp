@@ -155,6 +155,19 @@ int main()
         const auto file=juce::File::getSpecialLocation(juce::File::tempDirectory).getNonexistentChildFile("Aetherloom-test",".aetherpreset");
         require(p.savePreset(file) && restored.loadPreset(file),"User preset must save/load"); file.replaceWithText("invalid");
         require(!restored.loadPreset(file),"Malformed user preset must be rejected");file.deleteFile();
+        const auto expressionAudio=[&](int source,int value,bool reset) {
+            p.releaseResources();p.setCurrentProgram(6);set("chorus",0);set("delayMix",0);set("reverbMix",0);
+            set("filterEnvDepth",0);set("mod1source",static_cast<float>(source));set("mod1target",5);set("mod1amount",-0.7f);
+            p.prepareToPlay(48000,512);buffer.setSize(2,512);midi.clear();
+            midi.addEvent(source==7 ? juce::MidiMessage::controllerEvent(1,1,value):juce::MidiMessage::channelPressureChange(1,value),0);
+            if (reset) midi.addEvent(juce::MidiMessage::controllerEvent(1,121,0),0);
+            midi.addEvent(juce::MidiMessage::noteOn(1,60,0.8f),0);p.processBlock(buffer,midi);
+            return buffer.getSample(0,400);
+        };
+        const auto noWheel=expressionAudio(7,0,false);
+        require(std::abs(expressionAudio(7,127,false)-noWheel)>0.000001f,"New notes must inherit previously sent mod wheel");
+        require(std::abs(expressionAudio(8,127,false)-noWheel)>0.000001f,"New notes must inherit channel pressure");
+        require(std::abs(expressionAudio(7,127,true)-noWheel)<0.000001f,"Reset controllers must clear inherited expression");
         // Arpeggiated audio must be independent of the host's block partition.
         auto arpAudio=[&](int blockSize,bool modern) {
             p.releaseResources();p.setCurrentProgram(0);set("engine",modern ? 1.0f:0.0f);set("arpOn",1);set("step3",7);

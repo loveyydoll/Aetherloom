@@ -31,9 +31,11 @@ private:
 class AetherloomEditor final : public juce::AudioProcessorEditor, private juce::Timer {
 public:
     explicit AetherloomEditor(AetherloomProcessor&);
+    ~AetherloomEditor() override { setLookAndFeel(nullptr); }
     void paint(juce::Graphics&) override;
     void resized() override;
 private:
+    juce::LookAndFeel_V4 style;
     AetherloomProcessor& processor;
     juce::TextButton play{"PLAY"},edit{"EDIT"},reload{"RELOAD"},randomise{"MUTATE"},save{"SAVE"},load{"LOAD"},panic{"PANIC"};
     juce::ComboBox engine,mode,patches,category;

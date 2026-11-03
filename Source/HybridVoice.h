@@ -12,7 +12,10 @@ public:
     void handleController(int channel,int controller,int value) override {
         if (channel>=1 && channel<=16) {
             if (controller==1) expression.wheel[static_cast<size_t>(channel-1)]=static_cast<float>(value)/127;
-            if (controller==121) { expression.wheel[static_cast<size_t>(channel-1)]=0;expression.pressure[static_cast<size_t>(channel-1)]=0; }
+            if (controller==121) {
+                expression.wheel[static_cast<size_t>(channel-1)]=0;expression.pressure[static_cast<size_t>(channel-1)]=0;
+                handleSustainPedal(channel,false);handleSostenutoPedal(channel,false);
+            }
         }
         juce::Synthesiser::handleController(channel,controller,value);
     }
@@ -44,7 +47,7 @@ public:
         for (auto& filters:filter) for (auto& f:filters) f.reset();
         for (auto& l:lfo) l.reset();
         for (auto* e:{&amp,&filterEnv,&modEnv}) { e->setSampleRate(getSampleRate()); e->reset(); }
-        updateEnvelopes(); amp.noteOn(); filterEnv.noteOn(); modEnv.noteOn(); pitchWheelMoved(wheel);
+        updateEnvelopes(true); amp.noteOn(); filterEnv.noteOn(); modEnv.noteOn(); pitchWheelMoved(wheel);
     }
     void stopNote(float,bool tail) override {
         if (tail) { amp.noteOff(); filterEnv.noteOff(); modEnv.noteOff(); }
@@ -102,10 +105,15 @@ public:
         }
     }
 private:
-    void updateEnvelopes() {
-        amp.setParameters({old[0]->load(),old[1]->load(),old[2]->load(),old[3]->load()});
-        filterEnv.setParameters({target[EnvAttack],target[EnvDecay],target[EnvSustain],target[EnvRelease]});
-        modEnv.setParameters({target[ModAttack],target[ModDecay],target[ModSustain],target[ModRelease]});
+    static void updateEnvelope(juce::ADSR& envelope,const juce::ADSR::Parameters& next,bool force) {
+        const auto& previous=envelope.getParameters();
+        if (force || next.attack!=previous.attack || next.decay!=previous.decay || next.sustain!=previous.sustain || next.release!=previous.release)
+            envelope.setParameters(next);
+    }
+    void updateEnvelopes(bool force=false) {
+        updateEnvelope(amp,{old[0]->load(),old[1]->load(),old[2]->load(),old[3]->load()},force);
+        updateEnvelope(filterEnv,{target[EnvAttack],target[EnvDecay],target[EnvSustain],target[EnvRelease]},force);
+        updateEnvelope(modEnv,{target[ModAttack],target[ModDecay],target[ModSustain],target[ModRelease]},force);
     }
     void control(float env,float mod,float l1,float l2) {
         for (size_t i=0;i<current.size();++i)

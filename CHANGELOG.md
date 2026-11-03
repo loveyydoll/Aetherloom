@@ -9,6 +9,7 @@
 - Add stereo chorus, smoothed interpolated ping-pong delay and reverb; mono/oversized-block chorus scratch, prepared delay storage, dry bypass, output ceiling and conservative effect-aware tail reporting.
 - Add 12 Hybrid factory sounds (18 total), 98 new controls (114 total), appended AU version hint 3, full missing-control defaults and edited-state recall.
 - Replace EDIT with six scrolling pages; add search/category browser, constrained MUTATE, RELOAD, user preset SAVE/LOAD and audio-thread PANIC.
+- Avoid resetting ADSR release rates on unchanged block updates; format UI values in Hz/ms/percent and show all eight routes together.
 - Add DSP/filter/parameter, arp clock/ownership, modulation/effects, preset, block-partition and mono/large-buffer tests; extend the render benchmark and optional software editor snapshots.
 - Keep native arm64 AU/Standalone builds and development packaging. No full Alchemy/ES2 parity, user sample/wavetable import, MPE, oversampling or physical M5/DAW validation is claimed.
 

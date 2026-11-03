@@ -35,7 +35,7 @@ public:
         filter = coefficient = 0.0f; controlCounter = 0;
         pitchWheelMoved(wheel);
         envelope.setSampleRate(getSampleRate());
-        envelope.reset(); updateEnvelope(); envelope.noteOn();
+        envelope.reset(); updateEnvelope(true); envelope.noteOn();
         for (const auto i : smoothedIndices) {
             smooth[i].reset(getSampleRate(), 0.02);
             smooth[i].setCurrentAndTargetValue(value(i));
@@ -84,7 +84,12 @@ public:
     }
 private:
     float value(size_t i) const { return params[i]->load(std::memory_order_relaxed); }
-    void updateEnvelope() { envelope.setParameters({value(3),value(4),value(5),value(6)}); }
+    void updateEnvelope(bool force=false) {
+        const juce::ADSR::Parameters next{value(3),value(4),value(5),value(6)};
+        const auto& previous=envelope.getParameters();
+        if (force || next.attack!=previous.attack || next.decay!=previous.decay || next.sustain!=previous.sustain || next.release!=previous.release)
+            envelope.setParameters(next);
+    }
     const aetherloom::SineTable& sine;
     std::array<std::atomic<float>*, 16> params{};
     std::array<juce::SmoothedValue<float>, 16> smooth;
@@ -117,7 +122,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout AetherloomProcessor::layout(
                 juce::StringArray::fromTokens(spec.choices,"|",""),static_cast<int>(spec.initial)));
         } else {
             result.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{spec.id,3},spec.name,
-                juce::NormalisableRange<float>(spec.low,spec.high,0.0f,spec.skew),spec.initial));
+                juce::NormalisableRange<float>(spec.low,spec.high,(juce::String(spec.id).contains("semi") || juce::String(spec.id).startsWith("step")) ? 1.0f:0.0f,spec.skew),spec.initial));
         }
     }
     return result;

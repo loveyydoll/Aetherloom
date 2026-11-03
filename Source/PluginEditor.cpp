@@ -39,11 +39,28 @@ SynthControl::SynthControl(juce::AudioProcessorValueTreeState& state,const aethe
         choice.addItemList(juce::StringArray::fromTokens(spec.choices,"|",""),1); choice.setTooltip(spec.name);
         addAndMakeVisible(choice); choiceAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(state,spec.id,choice);
     } else {
-        slider.setName(spec.name); slider.setTooltip(juce::String(spec.name)+" — host-automatable; double-click to restore default.");
+        slider.setName(spec.name); slider.setTooltip(juce::String(spec.name)+" - host-automatable; double-click to restore default.");
         slider.setSliderStyle(isRoute ? juce::Slider::LinearHorizontal:juce::Slider::RotaryHorizontalVerticalDrag);
         slider.setTextBoxStyle(isRoute ? juce::Slider::TextBoxRight:juce::Slider::TextBoxBelow,false,76,20);
         slider.setDoubleClickReturnValue(true,spec.initial); addAndMakeVisible(slider);
         sliderAttachment=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(state,spec.id,slider);
+        const juce::String id(spec.id);
+        const auto hz=id.containsIgnoreCase("cutoff") || id.containsIgnoreCase("rate");
+        const auto seconds=id.containsIgnoreCase("attack") || id.containsIgnoreCase("decay") || id.containsIgnoreCase("release") || id=="delayTime";
+        const auto percent=spec.low>=-1 && spec.high<=1 && !hz && !seconds;
+        slider.textFromValueFunction=[hz,seconds,percent](double value) {
+            if (hz) return value>=1000 ? juce::String(value/1000,2)+" kHz":juce::String(value,value<20 ? 2:0)+" Hz";
+            if (seconds) return value<1 ? juce::String(value*1000,0)+" ms":juce::String(value,2)+" s";
+            if (percent) return juce::String(value*100,0)+"%";
+            return juce::String(value,1);
+        };
+        slider.valueFromTextFunction=[hz,seconds,percent](const juce::String& text) {
+            const auto value=text.getDoubleValue();
+            if (hz && text.containsIgnoreCase("k")) return value*1000;
+            if (seconds && text.containsIgnoreCase("ms")) return value/1000;
+            return percent ? value/100:value;
+        };
+        slider.updateText();
     }
 }
 void SynthControl::resized() {
@@ -53,6 +70,14 @@ void SynthControl::resized() {
 }
 AetherloomEditor::AetherloomEditor(AetherloomProcessor& p)
     : AudioProcessorEditor(p),processor(p),keyboard(p.keyboard,juce::MidiKeyboardComponent::horizontalKeyboard),pad(p.parameters) {
+    style.setColour(juce::Slider::rotarySliderFillColourId,juce::Colour(0xffb1a2e9));
+    style.setColour(juce::Slider::thumbColourId,juce::Colour(0xffe7cdb4));
+    style.setColour(juce::Slider::textBoxOutlineColourId,juce::Colours::transparentBlack);
+    style.setColour(juce::Slider::textBoxBackgroundColourId,juce::Colour(0xff22283b));
+    style.setColour(juce::ComboBox::backgroundColourId,juce::Colour(0xff252b3e));
+    style.setColour(juce::TextButton::buttonColourId,juce::Colour(0xff252b3e));
+    style.setColour(juce::TextButton::buttonOnColourId,juce::Colour(0xff514668));
+    setLookAndFeel(&style);
     for (auto* button:{&play,&edit,&reload,&randomise,&save,&load,&panic}) addAndMakeVisible(button);
     for (auto* combo:{&engine,&mode,&patches,&category}) addAndMakeVisible(combo);
     addAndMakeVisible(search); addAndMakeVisible(status); addAndMakeVisible(keyboard); addAndMakeVisible(pad); addAndMakeVisible(viewport);
@@ -68,7 +93,7 @@ AetherloomEditor::AetherloomEditor(AetherloomProcessor& p)
     panic.setTooltip("Release every voice, clear arpeggiator ownership and reset effect tails on the next audio block.");
     category.addItemList({"All sounds","Classic","Keys","Pads","Bass","Leads","Textures","Sequences"},1);
     category.setSelectedId(1,juce::dontSendNotification); category.onChange=[this] { filterPatches(); };
-    search.setTextToShowWhenEmpty("Find a sound…",juce::Colours::grey); search.onTextChange=[this] { filterPatches(); };
+    search.setTextToShowWhenEmpty("Find a sound...",juce::Colours::grey); search.onTextChange=[this] { filterPatches(); };
     patches.onChange=[this] { if (patches.getSelectedId()>0) processor.setCurrentProgram(patches.getSelectedId()-1); };
     filterPatches();
     viewport.setViewedComponent(&panel,false); viewport.setScrollBarsShown(true,false);
@@ -91,7 +116,7 @@ AetherloomEditor::AetherloomEditor(AetherloomProcessor& p)
     }};
     for (const auto& spec:legacy) controls.push_back(std::make_unique<SynthControl>(p.parameters,spec));
     for (auto& control:controls) panel.addAndMakeVisible(*control);
-    setSize(1020,780); setEditing(false); startTimerHz(15);
+    setSize(1020,780); setEditing(false); timerCallback(); startTimerHz(15);
 }
 void AetherloomEditor::filterPatches() {
     const auto selected=processor.getCurrentProgram()+1;
@@ -125,7 +150,7 @@ void AetherloomEditor::timerCallback() {
     if (program!=lastProgram || dirty!=lastEdited) {
         lastProgram=program; lastEdited=dirty;
         patches.setSelectedId(program+1,juce::dontSendNotification);
-        status.setText(processor.getProgramName(program)+(dirty ? "  • edited":"  • factory"),juce::dontSendNotification);
+        status.setText(processor.getProgramName(program)+(dirty ? "  / edited":"  / factory"),juce::dontSendNotification);
     }
     const auto peak=std::max(processor.getOutputPeak(),displayedPeak*0.82f);
     if (std::abs(peak-displayedPeak)>0.001f) { displayedPeak=peak; repaint(820,66,176,20); }
@@ -143,8 +168,8 @@ void AetherloomEditor::paint(juce::Graphics& g) {
     g.setColour(juce::Colour(0xffb1a2e9)); g.fillRoundedRectangle(820,72,std::min(176.0f,displayedPeak*176),8,4);
     if (!editing) {
         g.setColour(juce::Colour(0xffaaa8c5)); g.setFont(juce::FontOptions(14));
-        g.drawText("GLOW → GLASS / HAZE → FRACTURE",500,530,490,26,juce::Justification::centred);
-        g.drawText("Three oscillators · dual filters · eight modulation routes",500,560,490,24,juce::Justification::centred);
+        g.drawText("GLOW / GLASS / HAZE / FRACTURE",500,530,490,26,juce::Justification::centred);
+        g.drawText("Three oscillators / dual filters / eight modulation routes",500,560,490,24,juce::Justification::centred);
     }
 }
 void AetherloomEditor::resized() {
@@ -159,7 +184,7 @@ void AetherloomEditor::resized() {
     viewport.setBounds(24,editing ? 192:150,editing ? 972:440,editing ? 458:500);
     const auto columns=!editing ? 2:currentPage==aetherloom::Page::Matrix ? 3:6;
     const auto cellWidth=(viewport.getWidth()-18)/columns;
-    const auto cellHeight=currentPage==aetherloom::Page::Matrix && editing ? 60:112;
+    const auto cellHeight=currentPage==aetherloom::Page::Matrix && editing ? 56:112;
     int index=0;
     for (auto& control:controls) {
         const auto visible=control->page==(editing ? currentPage:aetherloom::Page::Play);
