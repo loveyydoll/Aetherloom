@@ -30,7 +30,7 @@ void ScenePad::mouseDrag(const juce::MouseEvent& event) {
 void ScenePad::mouseUp(const juce::MouseEvent&) { x->endChangeGesture(); y->endChangeGesture(); }
 
 SynthControl::SynthControl(juce::AudioProcessorValueTreeState& state,const aetherloom::ParameterSpec& spec)
-    : page(spec.page),isChoice(spec.choices!=nullptr),isRoute(spec.page==aetherloom::Page::Matrix) {
+    : page(spec.page),parameterId(spec.id),isChoice(spec.choices!=nullptr),isRoute(spec.page==aetherloom::Page::Matrix) {
     hybridOnly=state.getParameter(spec.id)->getVersionHint()>=3 && spec.page!=aetherloom::Page::Effects
         && spec.page!=aetherloom::Page::Arp && juce::String(spec.id)!="space";
     label.setText(spec.name,juce::dontSendNotification); label.setJustificationType(juce::Justification::centred);
@@ -62,6 +62,20 @@ SynthControl::SynthControl(juce::AudioProcessorValueTreeState& state,const aethe
         };
         slider.updateText();
     }
+}
+void SynthControl::refresh(bool hybrid,juce::AudioProcessorValueTreeState& state) {
+    auto enabled=!hybridOnly || hybrid;
+    if (hybrid && parameterId=="rate") enabled=false;
+    if (hybrid && parameterId.startsWith("osc") && (parameterId.endsWith("scan") || parameterId.endsWith("width"))) {
+        const auto wave=state.getRawParameterValue(parameterId.substring(0,4)+"wave")->load();
+        enabled=wave==(parameterId.endsWith("scan") ? 4:3);
+    }
+    if (parameterId.startsWith("lfo") && parameterId.endsWith("rate"))
+        enabled=enabled && state.getRawParameterValue(parameterId.substring(0,4)+"sync")->load()==0;
+    if (parameterId=="delayTime") enabled=state.getRawParameterValue("delaySync")->load()==0;
+    if (parameterId=="colour" || parameterId=="mix" || parameterId=="sub" || parameterId=="fm" || parameterId=="motion")
+        enabled=enabled && state.getRawParameterValue("morph")->load()<1;
+    setEnabled(enabled);
 }
 void SynthControl::resized() {
     label.setBounds(0,0,getWidth(),20);
@@ -109,7 +123,7 @@ AetherloomEditor::AetherloomEditor(AetherloomProcessor& p)
         {"cutoff","Filter 1 cutoff (Hz)",20,18000,3500,0.25f,aetherloom::Page::Filters},
         {"attack","Amp attack (s)",0.001f,3,0.015f,0.35f,aetherloom::Page::Filters}, {"decay","Amp decay (s)",0.001f,3,0.3f,0.35f,aetherloom::Page::Filters},
         {"sustain","Amp sustain",0,1,0.7f,1,aetherloom::Page::Filters}, {"release","Amp release (s)",0.001f,5,0.5f,0.35f,aetherloom::Page::Filters},
-        {"mix","Classic harmonic mix",0,1,0,1,aetherloom::Page::Oscillators}, {"sub","Sub weight",0,1,0,1,aetherloom::Page::Oscillators},
+        {"mix","Character balance",0,1,0,1,aetherloom::Page::Oscillators}, {"sub","Sub weight",0,1,0,1,aetherloom::Page::Oscillators},
         {"fm","Character FM",0,1,0,1,aetherloom::Page::Oscillators}, {"motion","Character motion",0,1,0,1,aetherloom::Page::Motion},
         {"rate","Classic motion Hz",0.05f,12,1,0.4f,aetherloom::Page::Motion},
         {"morphX","Scene X",0,1,0,1,aetherloom::Page::Motion}, {"morphY","Scene Y",0,1,0,1,aetherloom::Page::Motion}
@@ -128,6 +142,7 @@ void AetherloomEditor::filterPatches() {
         if ((category.getSelectedId()==1 || wanted==group) && name.containsIgnoreCase(query)) patches.addItem(name,i+1);
     }
     patches.setSelectedId(selected,juce::dontSendNotification);
+    if (patches.getSelectedId()==0) patches.setText(processor.getProgramName(selected-1),juce::dontSendNotification);
 }
 void AetherloomEditor::chooseFile(bool writing) {
     chooser=std::make_unique<juce::FileChooser>(writing ? "Save Aetherloom sound":"Load Aetherloom sound",
@@ -146,10 +161,11 @@ void AetherloomEditor::timerCallback() {
     const auto dirty=processor.isPatchEdited();
     const auto hybrid=processor.parameters.getRawParameterValue("engine")->load()>0.5f;
     mode.setEnabled(!hybrid);
-    for (auto& control:controls) control->setEnabled(!control->hybridOnly || hybrid);
+    for (auto& control:controls) control->refresh(hybrid,processor.parameters);
     if (program!=lastProgram || dirty!=lastEdited) {
         lastProgram=program; lastEdited=dirty;
         patches.setSelectedId(program+1,juce::dontSendNotification);
+        if (patches.getSelectedId()==0) patches.setText(processor.getProgramName(program),juce::dontSendNotification);
         status.setText(processor.getProgramName(program)+(dirty ? "  / edited":"  / factory"),juce::dontSendNotification);
     }
     const auto peak=std::max(processor.getOutputPeak(),displayedPeak*0.82f);

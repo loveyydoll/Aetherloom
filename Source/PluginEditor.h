@@ -18,9 +18,11 @@ class SynthControl final : public juce::Component {
 public:
     SynthControl(juce::AudioProcessorValueTreeState&,const aetherloom::ParameterSpec&);
     void resized() override;
+    void refresh(bool,juce::AudioProcessorValueTreeState&);
     aetherloom::Page page;
     bool hybridOnly=false;
 private:
+    juce::String parameterId;
     juce::Label label;
     juce::Slider slider;
     juce::ComboBox choice;

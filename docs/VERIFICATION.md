@@ -29,3 +29,12 @@ Processor tests cover silent initialization, MIDI event offsets, multi-note cont
 - Added regression coverage for Hybrid tuning/routes/filters/effects/limits, all parameter/user-preset recall, Classic defaults, arpeggiator audio block equivalence and mono/oversized chorus buffers.
 - Added standalone arpeggiator tests for offsets/cross-block timing, direction/octaves, swing, sustain ownership and panic. Optional editor snapshots exercise PLAY and all six EDIT pages.
 - Physical Logic Pro/GarageBand playback, MIDI hardware, native UI/file panels, M5 load/thermal measurements, signing/notarisation and distribution acceptance remain separate unperformed checks.
+
+### Local 0.3 checks
+
+- Linked Linux/g++ 13 build of processor/editor, AetherloomTests, CharacterDSPTests, HybridDSPTests, ArpeggiatorTests and benchmark completed with pinned JUCE 8.0.12.
+- CTest: 4/4 passed. Coverage includes conventional expression before note-on/reset, cross-block arpeggiated audio, feedback tail/panic, parameter/user-preset recall, mono and larger-than-prepared chorus buffers.
+- HybridDSPTests passed AddressSanitizer + UndefinedBehaviorSanitizer with leak detection disabled for this ptrace-based environment.
+- Software-rendered PLAY and all six EDIT pages inspected; fixed Unicode display, numeric formatting and matrix viewport fit. This is not native host/Retina/file-panel testing.
+- Local shared x86 Linux benchmark, 16 held notes / 128 samples: Classic median 110.014 us; Hybrid stress (3 unison, 8 routes, chorus/delay/reverb) median 425.702 us at 48 kHz and 424.761 us at 96 kHz. Maxima occasionally exceeded block budget under shared scheduling; these measurements are not a realtime guarantee or M5 measurement.
+- Native macOS/Windows CI and auval status is tracked on the PR for the actual head commit. The physical-machine/host limits above still apply.

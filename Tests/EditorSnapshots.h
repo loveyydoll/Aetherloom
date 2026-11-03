@@ -12,6 +12,7 @@ inline void renderEditorSnapshots(AetherloomProcessor& processor) {
         juce::Image image(juce::Image::ARGB,editor->getWidth(),editor->getHeight(),true);
         juce::Graphics graphics(image); editor->paintEntireComponent(graphics,true);
         auto stream=folder.getChildFile(juce::String(name)+".png").createOutputStream();
+        if (stream) { stream->setPosition(0); stream->truncate(); }
         juce::PNGImageFormat png;
         if (!stream || !png.writeImageToStream(image,*stream)) throw std::runtime_error("Editor snapshot failed");
     };

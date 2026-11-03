@@ -32,25 +32,29 @@ public:
             table[size] = table[0];
         }
     }
-    float read(double phase, double delta, float scan) const noexcept {
+    static int selectBand(double delta) noexcept {
         int band=0;
         while (band<static_cast<int>(bands)-1 && (1 << (band+1))*delta < 0.45) ++band;
+        return band;
+    }
+    float read(double phase,double delta,float scan) const noexcept { return readBand(phase,selectBand(delta),scan); }
+    float readBand(double phase,int band,float scan) const noexcept {
         const auto position = std::clamp(scan,0.0f,1.0f)*static_cast<float>(frames-1);
         const auto frame = std::min(frames-2,static_cast<size_t>(position));
         const auto blend = position-static_cast<float>(frame);
         const auto a = lookup(data[static_cast<size_t>(band)][frame],phase);
         return a + blend*(lookup(data[static_cast<size_t>(band)][frame+1],phase)-a);
     }
-    float oscillator(int wave,double phase,double delta,float scan,float width,const SineTable& sine) const noexcept {
+    float oscillator(int wave,double phase,double delta,float scan,float width,const SineTable& sine,int mip=-1) const noexcept {
         phase -= std::floor(phase); delta=std::clamp(delta,0.000001,0.45);
         if (wave==0) return sine(phase);
-        if (wave==1) return read(phase,delta,1.0f/3.0f);
+        if (wave==1) return readBand(phase,mip<0 ? selectBand(delta):mip,1.0f/3.0f);
         if (wave==2) return static_cast<float>(2*phase-1)-polyBlep(phase,delta);
         if (wave==3) {
             auto shifted = phase-width; shifted-=std::floor(shifted);
             return (phase<width ? 1.0f : -1.0f)+polyBlep(phase,delta)-polyBlep(shifted,delta)-(2*width-1);
         }
-        return read(phase,delta,scan);
+        return readBand(phase,mip<0 ? selectBand(delta):mip,scan);
     }
 private:
     static constexpr size_t size=2048, bands=8, frames=4;
@@ -72,6 +76,7 @@ public:
         k=2.0f-1.9f*std::clamp(resonance,0.0f,0.95f);
         a1=static_cast<float>(1/(1+g*(g+k))); a2=static_cast<float>(g)*a1; a3=static_cast<float>(g)*a2;
     }
+    void copyCoefficients(const StateFilter& other) noexcept { a1=other.a1; a2=other.a2; a3=other.a3; k=other.k; }
     float process(float input,int type) noexcept {
         const auto v3=input-ic2, v1=a1*ic1+a2*v3, v2=ic2+a2*ic1+a3*v3;
         ic1=2*v1-ic1; ic2=2*v2-ic2;

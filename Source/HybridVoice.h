@@ -79,7 +79,7 @@ public:
                     auto p=phase[o][un];
                     if (osc==0) p+=wave[1]*fmDepth*std::min(1.0,0.06/increments[o][un]);
                     const auto key=static_cast<size_t>(Wave1+osc*6);
-                    wave[o]=bank.oscillator(static_cast<int>(current[key]),p,increments[o][un],scan[o],current[key+5],sine);
+                    wave[o]=bank.oscillator(static_cast<int>(current[key]),p,increments[o][un],scan[o],current[key+5],sine,mipBands[o][un]);
                     phase[o][un]+=increments[o][un]; phase[o][un]-=std::floor(phase[o][un]);
                 }
                 const auto main=wave[0]*(1-current[Ring])+wave[0]*wave[1]*current[Ring];
@@ -139,10 +139,9 @@ private:
         const auto keyboard=(static_cast<float>(noteNumber)-60)/12*current[KeyTrack];
         const auto cutoff1=old[4]->load()*std::exp2(env*current[EnvDepth]+keyboard+destinations[5]*4+motion+current[Air]*2);
         const auto cutoff2=current[Cutoff2]*std::exp2(destinations[6]*4+keyboard);
-        for (auto& f:filter) {
-            f[0].configure(getSampleRate(),cutoff1,std::clamp(current[Resonance1]+destinations[7]*0.4f,0.0f,0.95f));
-            f[1].configure(getSampleRate(),cutoff2,std::clamp(current[Resonance2]+destinations[7]*0.4f,0.0f,0.95f));
-        }
+        filter[0][0].configure(getSampleRate(),cutoff1,std::clamp(current[Resonance1]+destinations[7]*0.4f,0.0f,0.95f));
+        filter[0][1].configure(getSampleRate(),cutoff2,std::clamp(current[Resonance2]+destinations[7]*0.4f,0.0f,0.95f));
+        filter[1][0].copyCoefficients(filter[0][0]); filter[1][1].copyCoefficients(filter[0][1]);
         const auto voices=1+static_cast<int>(current[Unison]);
         for (int o=0;o<3;++o) {
             const auto key=static_cast<size_t>(Wave1+o*6);
@@ -151,8 +150,11 @@ private:
                 const auto detune=voices==1 ? 0.0f : (static_cast<float>(u)*2/static_cast<float>(voices-1)-1);
                 const auto semitones=current[key+1]+current[key+2]*0.01f+detune*current[Detune]*0.01f+bend+destinations[1]*24+destinations[static_cast<size_t>(2+o)]*12;
                 increments[static_cast<size_t>(o)][static_cast<size_t>(u)]=std::clamp(frequency*std::exp2(semitones/12)/getSampleRate(),0.000001,0.45);
-                const auto position=detune*current[Spread];
-                unisonPan[static_cast<size_t>(u)]={std::sqrt((1-position)*0.5f),std::sqrt((1+position)*0.5f)};
+                mipBands[static_cast<size_t>(o)][static_cast<size_t>(u)]=WavetableBank::selectBand(increments[static_cast<size_t>(o)][static_cast<size_t>(u)]);
+                if (o==0) {
+                    const auto position=detune*current[Spread];
+                    unisonPan[static_cast<size_t>(u)]={std::sqrt((1-position)*0.5f),std::sqrt((1+position)*0.5f)};
+                }
             }
         }
         subIncrement=std::min(0.45,frequency*0.5*std::exp2(bend/12)/getSampleRate());
@@ -168,6 +170,7 @@ private:
     std::atomic<float>* sceneAmount=nullptr;
     std::array<float,ParameterCount> current{},target{};
     std::array<std::array<double,3>,3> phase{},increments{};
+    std::array<std::array<int,3>,3> mipBands{};
     std::array<std::array<float,2>,3> unisonPan{};
     std::array<float,3> scan{};
     std::array<std::array<StateFilter,2>,2> filter;
