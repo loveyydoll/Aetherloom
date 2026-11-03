@@ -18,5 +18,15 @@ destination="$HOME/Library/Audio/Plug-Ins/Components"
 mkdir -p "$destination"
 ditto "$component" "$destination/Aetherloom.component"
 codesign --verify --strict "$destination/Aetherloom.component"
+# AUv2 discovery is cached by a per-user service. Refresh only this user's
+# registrar after installing; quit audio hosts before running this script.
+killall -u "$(id -un)" AudioComponentRegistrar 2>/dev/null || true
+for attempt in 1 2 3 4 5; do
+    if auval -a 2>/dev/null | awk '$1 == "aumu" && $2 == "Aelm" && $3 == "Lvyd" { found = 1 } END { exit !found }'; then
+        break
+    fi
+    sleep 1
+done
+# Discovery retries do not mask validation errors: this command must succeed.
 auval -v aumu Aelm Lvyd
 printf '%s\n' 'Installed Aetherloom.component. Restart Logic Pro / GarageBand before scanning.'

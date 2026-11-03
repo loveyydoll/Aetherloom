@@ -26,7 +26,7 @@ ctest --test-dir build -C Release --output-on-failure
 bash scripts/install-au.sh
 ```
 
-Quit the hosts before installation, then restart them. GarageBand: enable Audio Units in Settings > Audio/MIDI; on a software-instrument track open Smart Controls > Plug-ins > instrument > AU Instruments > loveyydoll > Aetherloom. Logic: instrument slot > AU Instruments > loveyydoll > Aetherloom; use Plug-in Manager to rescan if needed. The installer checks arm64, ad-hoc signs the local build, copies it into `~/Library/Audio/Plug-Ins/Components/` and runs `auval -v aumu Aelm Lvyd`.
+Quit the hosts before installation, then restart them. GarageBand: enable Audio Units in Settings > Audio/MIDI; on a software-instrument track open Smart Controls > Plug-ins > instrument > AU Instruments > loveyydoll > Aetherloom. Logic: instrument slot > AU Instruments > loveyydoll > Aetherloom; use Plug-in Manager to rescan if needed. The installer checks arm64, ad-hoc signs the local build, copies it into `~/Library/Audio/Plug-Ins/Components/` refreshes your user's AU registration cache and runs `auval -v aumu Aelm Lvyd`.
 
 These are local development builds, not signed/notarised distribution packages. Download CI's Apple Silicon development artifact, then extract the inner `Aetherloom-0.2.0-arm64.zip`. It preserves the complete component bundle and includes `install-au.sh`. From that extracted folder run `bash install-au.sh` (no build required). Native host testing is still required.
 
