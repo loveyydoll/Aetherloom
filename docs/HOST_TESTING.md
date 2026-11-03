@@ -2,7 +2,7 @@
 
 Not yet performed. Record OS, architecture, Xcode, host version, commit and results for each host separately.
 
-1. Build native and universal AUv2/Standalone/VST3; verify bundle architectures. Install AU manually and run `auval -v aumu Aelm Lvyd`.
+1. Build native arm64 AUv2/Standalone (optional VST3). Run `bash scripts/install-au.sh`; verify architecture, signing and auval. Intel/universal builds must fail configuration.
 2. GarageBand: scan instrument, insert on software-instrument track, play chords, sustain and pitch wheel. Verify audio output and note release after stop/seek.
 3. Logic Pro: repeat scanning and playing; test mono/stereo, offline bounce, automation, project save/reopen and multiple instances.
 4. Switch PLAY/EDIT and all character modes during held notes. Exercise on-screen keyboard and external MIDI. Check focus and resizing on Retina displays.
@@ -10,3 +10,21 @@ Not yet performed. Record OS, architecture, Xcode, host version, commit and resu
 6. Test Standalone device setup and VST3 in a named VST3 host independently.
 
 Passing CI, auval or one host does not imply all hosts passed. Signing, notarisation and installer acceptance remain separate release tasks.
+
+## 0.2.0 / M5 Air 16 GB, 1 TB acceptance
+
+- Check every patch, move the scene pad at Scene amount 0 and 1, and automate X/Y, FM, Sub, Motion and Level during held chords. Compare pad and EDIT sliders.
+- Save/reopen a project after modifying a factory patch, duplicate tracks, bounce offline and compare audio/state. Load a 0.1 session after a 0.2 patch; missing controls must reset to Init values. WARM saturation intentionally differs from 0.1.
+- Test minimum 1/17-sample processor blocks separately from host buffers 64/128/256/512 at 44.1/48/96 kHz. Exercise high notes, sustain and >16 notes.
+- Run the render benchmark in Release. Record median/p99/max, macOS/host version, hardware, sample rate, buffer size and number of instances.
+- Repeat after a 30-minute music session on battery and mains. Listen for dropouts and inspect memory/CPU; passing a short benchmark is not thermal validation.
+- Verify keyboard navigation, tooltips, PLAY/EDIT label visibility and Retina layout. Confirm the preset menu follows host program changes; name denotes last loaded patch, not an unedited guarantee.
+
+## 0.3.0 additional acceptance
+
+- Classic sessions: reload 0.1/0.2 state after loading a Hybrid patch; verify new controls reset, engine is Classic, arp/FX are off, and old AU automation addresses retain their meaning.
+- Hybrid: exercise all oscillator waves/tuning/pulse/scan/unison, both filter types/routings, all envelopes and each modulation source/target. Send CC1/channel pressure before and during note-on, plus poly aftertouch.
+- Arp: hold/release chords with and without pedal, switch channels, test all directions/octaves and eight transpose steps, automate gate/swing/tempo and stop/seek during held notes. Test live audition while transport is stopped. First held note starts the pattern; it is not PPQ note quantisation.
+- FX: compare dry bypass, mono/stereo chorus, feedback delay and reverb tails; change free/synced time at slow/fast tempos. Confirm four-second delay cap and conservative host tail reporting. PANIC must clear sounding voices and tails.
+- UI: search/category selection, edited/factory marker, RELOAD, constrained MUTATE, SAVE/LOAD/cancel dialogs and closing editor during a dialog. Test every page's scrolling/keyboard controls at Retina scale on the M5 Air.
+- Benchmark all four profiles, then repeat after a sustained real DAW session. Record host/OS/sample rate/buffer/instance count and thermal state. Timing on a shared runner is not the physical-machine acceptance result.
