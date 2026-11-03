@@ -2,6 +2,7 @@
 #pragma once
 #include <juce_audio_utils/juce_audio_utils.h>
 #include <juce_dsp/juce_dsp.h>
+#include "CharacterDSP.h"
 
 class AetherloomProcessor final : public juce::AudioProcessor
 {
@@ -17,10 +18,10 @@ public:
     bool acceptsMidi() const override { return true; }
     bool producesMidi() const override { return false; }
     double getTailLengthSeconds() const override { return 5.0; }
-    int getNumPrograms() override { return 1; }
-    int getCurrentProgram() override { return 0; }
-    void setCurrentProgram(int) override {}
-    const juce::String getProgramName(int) override { return "Init"; }
+    int getNumPrograms() override;
+    int getCurrentProgram() override { return currentProgram.load(); }
+    void setCurrentProgram(int) override;
+    const juce::String getProgramName(int) override;
     void changeProgramName(int, const juce::String&) override {}
     void getStateInformation(juce::MemoryBlock&) override;
     void setStateInformation(const void*, int) override;
@@ -28,6 +29,10 @@ public:
     juce::MidiKeyboardState keyboard;
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout layout();
+    aetherloom::SineTable sine;
     juce::Synthesiser synth;
+    juce::SmoothedValue<float> outputGain;
+    std::atomic<int> currentProgram{0};
+    juce::ValueTree initialState;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AetherloomProcessor)
 };

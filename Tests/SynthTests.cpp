@@ -57,6 +57,53 @@ int main()
         require(std::abs(restored.parameters.getRawParameterValue("colour")->load() - 0.83f) < 0.001f, "State must round-trip");
         const char invalid[] = "broken"; restored.setStateInformation(invalid, sizeof(invalid));
         require(std::abs(restored.parameters.getRawParameterValue("colour")->load() - 0.83f) < 0.001f, "Invalid state must be ignored");
+        // Every factory patch must be audible, distinct and recallable.
+        float previous = 0;
+        for (int patch = 0; patch < p.getNumPrograms(); ++patch) {
+            p.setCurrentProgram(patch);
+            const auto sample = renderChord(true);
+            require(std::abs(sample-previous) > 0.000001f, "Factory patches must differ");
+            require(buffer.getMagnitude(0,512) > 0.00001f, "Patch must be audible");
+            previous = sample;
+            juce::MemoryBlock saved; p.getStateInformation(saved);
+            restored.setStateInformation(saved.getData(), static_cast<int>(saved.getSize()));
+            require(restored.getCurrentProgram() == patch, "Patch label must recall");
+            for (auto id : {"mix","sub","fm","motion","rate","morphX","morphY","morph"})
+                require(std::abs(p.parameters.getRawParameterValue(id)->load()-restored.parameters.getRawParameterValue(id)->load()) < 0.0001f,
+                        "New parameter must round-trip");
+        }
+        // Restoring an old session after a new patch must reset absent new controls.
+        auto old = p.parameters.copyState();
+        for (auto id : {"mix","sub","fm","motion","rate","morphX","morphY","morph"})
+            old.removeChild(old.getChildWithProperty("id", id), nullptr);
+        juce::MemoryBlock legacy;
+        if (auto xml = old.createXml()) juce::AudioProcessor::copyXmlToBinary(*xml, legacy);
+        restored.setCurrentProgram(4);
+        restored.setStateInformation(legacy.getData(), static_cast<int>(legacy.getSize()));
+        require(restored.parameters.getRawParameterValue("fm")->load() == 0, "Legacy sessions must default new controls");
+        p.setCurrentProgram(0); set("mix",0.5f); set("sub",0.2f);
+        const auto plain = renderChord(false); set("fm",0.8f);
+        require(std::abs(renderChord(false)-plain) > 0.00001f, "FM must affect output");
+        set("morph",1); set("morphX",0); set("morphY",0);
+        const auto glow = renderChord(false); set("morphX",1); set("morphY",1);
+        require(std::abs(renderChord(false)-glow) > 0.00001f, "Scene pad must affect output");
+        set("morph",0); set("motion",0);
+        const auto still = renderChord(false); set("motion",1); set("rate",12);
+        require(std::abs(renderChord(false)-still) > 0.00001f, "Motion must affect output");
+        // Bound output for high notes, maximum modulation, voice stealing and odd block sizes.
+        for (double rate : {44100.0,48000.0,96000.0}) for (int block : {1,17,64,512,1024}) {
+            p.releaseResources(); p.prepareToPlay(rate,block);
+            buffer.setSize(2,block); p.setCurrentProgram(4);
+            set("fm",1); set("motion",1); set("cutoff",18000); set("morph",1);
+            for (int note = 90; note < 114; ++note) midi.addEvent(juce::MidiMessage::noteOn(1,note,1.0f),0);
+            for (int n = 0; n < 30; ++n) {
+                set("morphX", n%2 ? 1.0f : 0.0f); set("gain", n%2 ? 0.0f : 1.0f);
+                p.processBlock(buffer,midi);
+                for (int ch=0; ch<2; ++ch) for (int j=0; j<block; ++j)
+                    require(std::isfinite(buffer.getSample(ch,j)) && std::abs(buffer.getSample(ch,j)) < 3.0f,
+                            "Stress audio must stay finite and bounded");
+            }
+        }
         std::cout << "Passed: silence, timed MIDI chords, modes, finite output, release, state\n";
         return 0;
     } catch (const std::exception& e) { std::cerr << e.what() << '\n'; return 1; }
