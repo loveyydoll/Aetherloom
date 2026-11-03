@@ -4,7 +4,12 @@
 ScenePad::ScenePad(juce::AudioProcessorValueTreeState& state)
     : x(state.getParameter("morphX")), y(state.getParameter("morphY")) {
     setTitle("Scene blend"); setDescription("Glow, Glass, Haze and Fracture; use EDIT for keyboard-accessible X/Y sliders.");
-    startTimerHz(30);
+    startTimerHz(20);
+}
+void ScenePad::timerCallback() {
+    if (!isShowing()) return;
+    const auto newX = x->getValue(), newY = y->getValue();
+    if (newX != lastX || newY != lastY) { lastX = newX; lastY = newY; repaint(); }
 }
 void ScenePad::paint(juce::Graphics& g) {
     g.fillAll(juce::Colour(0xff292d42)); g.setColour(juce::Colour(0xffe7cdb4)); g.setFont(14.0f);
@@ -55,7 +60,11 @@ AetherloomEditor::AetherloomEditor(AetherloomProcessor& p)
     }
     setSize(820, 700); setEditing(false); startTimerHz(10);
 }
-void AetherloomEditor::timerCallback() { patches.setSelectedId(processor.getCurrentProgram()+1, juce::dontSendNotification); }
+void AetherloomEditor::timerCallback() {
+    patches.setSelectedId(processor.getCurrentProgram()+1, juce::dontSendNotification);
+    const auto baseActive = processor.parameters.getRawParameterValue("morph")->load() < 1.0f;
+    for (const auto i : {0,7,8,9,10}) sliders[static_cast<size_t>(i)].setEnabled(baseActive);
+}
 void AetherloomEditor::setEditing(bool value) {
     editing = value; play.setToggleState(!value, juce::dontSendNotification); edit.setToggleState(value, juce::dontSendNotification);
     for (size_t i = 0; i < sliders.size(); ++i) {

@@ -10,7 +10,8 @@ public:
     void mouseDrag(const juce::MouseEvent&) override;
     void mouseUp(const juce::MouseEvent&) override;
 private:
-    void timerCallback() override { repaint(); }
+    void timerCallback() override;
+    float lastX = -1, lastY = -1;
     juce::RangedAudioParameter *x, *y;
 };
 class AetherloomEditor final : public juce::AudioProcessorEditor, private juce::Timer {
