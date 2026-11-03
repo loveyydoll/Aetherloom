@@ -2,7 +2,7 @@
 
 ## 0.2.0 — 2026-11-03
 
-- Target MacBook Air M5 / 16 GB / 1 TB with native arm64-only macOS AUv2 and Standalone defaults; keep VST3 opt-in on macOS.
+- Target MacBook Air M5 / 16 GB / 1 TB with native arm64-only, sandbox-safe macOS AUv2 and Standalone defaults; keep VST3 opt-in on macOS.
 - Add six original factory patches, host program/session recall and backward defaults for new controls.
 - Add a PLAY scene pad and EDIT X/Y sliders, three-source oscillator mix, sub, FM and filter motion with explanatory labels/tooltips.
 - Cache parameter pointers, share a sine lookup table, remove per-sample sine/tanh work, reduce coefficient calculations, smooth timbre/mode/output and enable macOS Release optimisation/LTO.

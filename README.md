@@ -15,7 +15,7 @@ Inspired by Alchemy's performance-first morphing and ES2's oscillator mixing/FM,
 
 ## Native Apple Silicon AU
 
-The macOS default is **AUv2 `Aetherloom.component` + Standalone**, arm64 only. `.component` is the plugin bundle extension used by Logic Pro and GarageBand; renaming a VST3 or using a Logic `.patch` file would not turn it into an AU. Existing manufacturer `Lvyd`, subtype `Aelm`, bundle ID and parameter IDs remain stable. New AU controls use version hint 2 so old automation addresses keep their ordering.
+The macOS default is **AUv2 `Aetherloom.component` + Standalone**, arm64 only. The AU declares sandbox-safe operation (no external file/network access in the synth). `.component` is the plugin bundle extension used by Logic Pro and GarageBand; renaming a VST3 or using a Logic `.patch` file would not turn it into an AU. Existing manufacturer `Lvyd`, subtype `Aelm`, bundle ID and parameter IDs remain stable. New AU controls use version hint 2 so old automation addresses keep their ordering.
 
 Install Xcode and its command-line tools, Git and CMake 3.22+. JUCE 8.0.12 is pinned at `29396c22c93392d6738e021b83196283d6e4d850` and fetched during configuration. From a native Terminal:
 
